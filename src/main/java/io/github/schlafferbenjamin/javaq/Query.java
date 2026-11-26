@@ -463,4 +463,12 @@ public interface Query<T> extends Iterable<T> {
         };
     }
 
+
+    default Set<T> toSet() {
+        Set<T> result = new LinkedHashSet<>();
+        for (T item : this) {
+            result.add(item);
+        }
+        return result;
+    }
 }
