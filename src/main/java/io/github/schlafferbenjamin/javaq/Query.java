@@ -371,4 +371,37 @@ public interface Query<T> extends Iterable<T> {
             }
         };
     }
+
+
+
+
+    /**
+     * Determines whether this query contains any elements.
+     *
+     * @return {@code true} if this query contains at least one element; {@code false} otherwise
+     */
+    default boolean any() {
+        return iterator().hasNext();
+    }
+
+    /**
+     * Determines whether any element of this query satisfies {@code predicate}.
+     *
+     * <p>Evaluation stops as soon as the first matching element is found.</p>
+     *
+     * @param predicate the condition to test each element against
+     * @return {@code true} if at least one element matches {@code predicate}; {@code false}
+     *         otherwise (including when this query is empty)
+     * @throws NullPointerException if {@code predicate} is {@code null}
+     */
+    default boolean any(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate");
+        Iterator<T> iterator = iterator();
+        while (iterator.hasNext()) {
+            if (predicate.test(iterator.next())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
