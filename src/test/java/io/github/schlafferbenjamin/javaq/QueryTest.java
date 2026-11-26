@@ -91,4 +91,33 @@ class QueryTest {
 
         System.out.println(words);
     }
+
+    @Test
+    void testSkips() {
+        List<Integer> resultForward = JQ.of(1,2,3,4,5,6,7,8)
+                .skip(3)
+                .toList();
+
+        List<Integer> resultBackwards = JQ.of(1,2,3,4,5,6,7,8)
+                .skip(-3)
+                .toList();
+
+        assertEquals(
+                List.of(4,5,6,7,8),
+                resultForward
+        );
+
+        assertEquals(
+                List.of(1,2,3,4,5),
+                resultBackwards
+        );
+
+        assertEquals(
+                List.of(4,5),
+                JQ.of(1,2,3,4,5,6,7,8)
+                        .skip(3)
+                        .skip(-3)
+                        .toList()
+        );
+    }
 }

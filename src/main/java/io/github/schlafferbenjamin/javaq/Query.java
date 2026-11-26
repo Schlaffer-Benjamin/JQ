@@ -304,4 +304,71 @@ public interface Query<T> extends Iterable<T> {
             return defaultValue;
         }
     }
+
+
+    /**
+     * Skips {@code count} elements from the start when {@code count >= 0}, or skips
+     * {@code |count|} elements from the end when {@code count < 0}.
+     *
+     * @param count number of elements to skip from the start (if non-negative) or from the end
+     *              (if negative)
+     * @return a lazy query with the specified leading or trailing elements skipped
+     */
+    default Query<T> skip(int count) {
+        if (count >= 0) {
+            return skipFromStart(count);
+        }
+        int dropFromEnd = (count == Integer.MIN_VALUE) ? Integer.MAX_VALUE : -count;
+        return skipFromEnd(dropFromEnd);
+    }
+
+    private Query<T> skipFromStart(int count) {
+        return () -> new AbstractIterator<T>() {
+            private Iterator<T> source;
+            private int remainingToSkip = count;
+
+            @Override
+            protected T computeNext() {
+                if (source == null) {
+                    source = iterator();
+                }
+
+                while (remainingToSkip > 0 && source.hasNext()) {
+                    source.next();
+                    remainingToSkip--;
+                }
+
+                if (!source.hasNext()) {
+                    return endOfData();
+                }
+
+                return source.next();
+            }
+        };
+    }
+
+    private Query<T> skipFromEnd(int dropFromEnd) {
+        return () -> new AbstractIterator<T>() {
+            private List<T> buffer;
+            private int index;
+
+            @Override
+            protected T computeNext() {
+                if (buffer == null) {
+                    buffer = new ArrayList<>();
+                    Iterator<T> it = iterator();
+                    while (it.hasNext()) {
+                        buffer.add(it.next());
+                    }
+                }
+
+                int keepUntil = buffer.size() - dropFromEnd;
+                if (index >= keepUntil) {
+                    return endOfData();
+                }
+
+                return buffer.get(index++);
+            }
+        };
+    }
 }
