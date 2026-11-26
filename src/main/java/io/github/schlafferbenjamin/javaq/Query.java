@@ -404,4 +404,27 @@ public interface Query<T> extends Iterable<T> {
         }
         return false;
     }
+
+
+    /**
+     * Determines whether all elements of this query satisfy {@code predicate}.
+     *
+     * <p>Evaluation stops as soon as an element fails {@code predicate}. If this query is empty,
+     * returns {@code true}.</p>
+     *
+     * @param predicate the condition every element must satisfy
+     * @return {@code true} if every element matches {@code predicate} or the query is empty;
+     *         {@code false} if any element does not match
+     * @throws NullPointerException if {@code predicate} is {@code null}
+     */
+    default boolean all(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate");
+        Iterator<T> iterator = iterator();
+
+        while (iterator.hasNext()) {
+            if (!predicate.test(iterator.next())) return false;
+        }
+
+        return true;
+    }
 }
