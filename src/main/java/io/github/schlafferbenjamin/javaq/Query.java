@@ -464,6 +464,10 @@ public interface Query<T> extends Iterable<T> {
     }
 
 
+    /**
+     * Creates a set from the sequence it is called on
+     * @return A set made from the given sequence
+     */
     default Set<T> toSet() {
         Set<T> result = new LinkedHashSet<>();
         for (T item : this) {
@@ -471,4 +475,5 @@ public interface Query<T> extends Iterable<T> {
         }
         return result;
     }
+
 }
