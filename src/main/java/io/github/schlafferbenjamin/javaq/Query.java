@@ -469,7 +469,9 @@ public interface Query<T> extends Iterable<T> {
      */
     default int count() {
         int count = 0;
-        for (T ignored : this) {
+        Iterator<T> iterator = iterator();
+        while (iterator.hasNext()) {
+            iterator.next();
             count++;
         }
         return count;

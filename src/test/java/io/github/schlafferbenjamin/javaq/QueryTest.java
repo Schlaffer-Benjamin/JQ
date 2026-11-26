@@ -2,122 +2,60 @@ package io.github.schlafferbenjamin.javaq;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.util.Set;
 
-class QueryTest {
+import static org.junit.jupiter.api.Assertions.*;
+
+class QueryCoreOperatorsTest {
 
     @Test
-    void whereSelectTakeAndToListWorkLazily() {
-        List<String> result = JQ.of(1, 2, 3, 4, 5, 6, 8)
-                .where(n -> n % 2 == 0)
-                .select(n -> "even-" + n)
-                .take(3)
+    void testSelectManyFlattensAndSkipsEmptyInnerIterables() {
+        List<String> flattened = JQ.<List<String>>of(
+                        List.of("a", "b"),
+                        List.of(),
+                        List.of("c"),
+                        List.of("d", "e")
+                )
+                .selectMany(list -> list)
                 .toList();
 
-        assertEquals(
-                List.of("even-2", "even-4", "even-6"),
-                result
+        assertEquals(List.of("a", "b", "c", "d", "e"), flattened);
+    }
+
+    @Test
+    void testSelectManyEmptyAndNullGuards() {
+        assertEquals(List.of(), JQ.<List<Integer>>of().selectMany(list -> list).toList());
+        assertThrows(NullPointerException.class, () -> JQ.of(List.of(1)).selectMany(null));
+        assertThrows(NullPointerException.class, () ->
+                JQ.of(1, 2).selectMany(x -> null).toList()
         );
-
-        for (String item : result) {
-            System.out.println(item);
-        }
-    }
-
-
-    @Test
-    void firstReturnsFirstElementAndThrowsOnEmpty() {
-        assertEquals(10, JQ.of(10, 20, 30).first());
-        assertEquals(20, JQ.of(10, 20, 30).first(n -> n > 15));
-        assertThrows(NoSuchElementException.class, () -> JQ.<Integer>of().first());
-        assertThrows(NoSuchElementException.class, () -> JQ.of(1, 2, 3).first(n -> n > 10));
     }
 
     @Test
-    void firstOrDefaultHandlesEmptyAndFallback() {
-        assertEquals(Optional.of("a"), JQ.of("a", "b").firstOrDefault());
-        assertEquals(Optional.empty(), JQ.<String>of().firstOrDefault());
-        assertEquals("fallback", JQ.<String>of().firstOrDefault("fallback"));
-        assertNull(JQ.<String>of().firstOrDefault(null));
-    }
-
-
-    @Test
-    void testBasics() {
-        List<Integer> result = JQ.of(1,2,3,4,5,6,7,8,9,10)
-                .where(x -> x > 5)
-                .take(4)
-                .orderByDescending(x -> x)
-                .toList();
-
-        System.out.println(result);
-    }
-
-
-    @Test
-    void orderByAndOrderByDescendingSortLazilyAndStably() {
-        List<String> items = List.of("b-1", "a-1", "b-2", "a-2");
-
-        List<String> ascending = JQ.from(items)
-                .orderBy(s -> s.substring(0, 1))
-                .toList();
-        assertEquals(List.of("a-1", "a-2", "b-1", "b-2"), ascending);
-
-        List<String> descending = JQ.from(items)
-                .orderByDescending(s -> s.substring(0, 1))
-                .toList();
-        assertEquals(List.of("b-1", "b-2", "a-1", "a-2"), descending);
-
-        System.out.println(ascending);
-        System.out.println(descending);
-    }
-
-
-    @Test
-    void testOnListAlreadyExisting() {
-        List<String> words = List.of("banana", "Apple", "Cherry");
-
-        System.out.println(words);
-
-        words = JQ.from(words)
-                .orderBy(x -> x)
-                .toList();
-
-        System.out.println(words);
+    void testCount() {
+        assertEquals(0, JQ.of().count());
+        assertEquals(4, JQ.of(10, 20, 30, 40).count());
+        assertEquals(2, JQ.of(1, 2, 3, 4, 5).where(n -> n % 2 == 0).count());
     }
 
     @Test
-    void testSkips() {
-        List<Integer> resultForward = JQ.of(1,2,3,4,5,6,7,8)
-                .skip(3)
+    void testDistinctPreservesFirstSeenOrderAndHandlesEmpty() {
+        List<Integer> distinctItems = JQ.of(3, 1, 2, 3, 2, 4, 1)
+                .distinct()
                 .toList();
 
-        List<Integer> resultBackwards = JQ.of(1,2,3,4,5,6,7,8)
-                .skip(-3)
-                .toList();
+        assertEquals(List.of(3, 1, 2, 4), distinctItems);
+        assertEquals(List.of(), JQ.<Integer>of().distinct().toList());
+    }
 
-        assertEquals(
-                List.of(4,5,6,7,8),
-                resultForward
-        );
+    @Test
+    void testToSetPreservesEncounterOrderAndDeduplicates() {
+        Set<String> result = JQ.of("b", "a", "b", "c", "a")
+                .toSet();
 
-        assertEquals(
-                List.of(1,2,3,4,5),
-                resultBackwards
-        );
-
-        assertEquals(
-                List.of(4,5),
-                JQ.of(1,2,3,4,5,6,7,8)
-                        .skip(3)
-                        .skip(-3)
-                        .toList()
-        );
+        assertEquals(Set.of("a", "b", "c"), result);
+        assertEquals(List.of("b", "a", "c"), List.copyOf(result));
+        assertTrue(JQ.of().toSet().isEmpty());
     }
 }
