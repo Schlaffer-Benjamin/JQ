@@ -72,6 +72,40 @@ public interface Query<T> extends Iterable<T> {
     }
 
     /**
+     * Projects each element of this query to an {@link Iterable} and flattens the resulting
+     * sequences into one lazy query.
+     *
+     * <p>Evaluation is lazy: inner iterables are requested and iterated only as elements are
+     * consumed.</p>
+     *
+     * @param selector a function mapping each element to a non-null {@link Iterable}
+     * @param <R>      the element type of the flattened sequence
+     * @return a new lazy {@code Query} containing all elements from each inner iterable in order
+     * @throws NullPointerException if {@code selector} is {@code null}, or if {@code selector}
+     *                              returns {@code null} for an element
+     */
+    default <R> Query<R> selectMany(Function<? super T, ? extends Iterable<? extends R>> selector) {
+        Objects.requireNonNull(selector, "selector");
+        return () -> new AbstractIterator<R>() {
+            private final Iterator<T> source = iterator();
+            private Iterator<? extends R> currentInner = Collections.emptyIterator();
+
+            @Override
+            protected R computeNext() {
+                while (!currentInner.hasNext()) {
+                    if (!source.hasNext()) {
+                        return endOfData();
+                    }
+                    Iterable<? extends R> nextIterable = selector.apply(source.next());
+                    Objects.requireNonNull(nextIterable, "selector must not return null");
+                    currentInner = nextIterable.iterator();
+                }
+                return currentInner.next();
+            }
+        };
+    }
+
+    /**
      * Limits this query to at most the first {@code count} elements.
      *
      * <p>Evaluation is lazy and short-circuiting: iteration stops as soon as {@code count}
