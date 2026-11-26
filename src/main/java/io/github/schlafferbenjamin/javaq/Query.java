@@ -1,13 +1,9 @@
 package io.github.schlafferbenjamin.javaq;
 
 import io.github.schlafferbenjamin.javaq.internal.AbstractIterator;
+import io.github.schlafferbenjamin.javaq.internal.SortedIterable;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -158,11 +154,11 @@ public interface Query<T> extends Iterable<T> {
      * @return an {@link Optional} describing the first element, or {@link Optional#empty()} if empty
      */
     default Optional<T> firstOrDefault() {
-        Iterator<T> iterator = iterator();
-        if (!iterator.hasNext()) {
+        try {
+            return Optional.ofNullable(first());
+        } catch (NoSuchElementException e) {
             return Optional.empty();
         }
-        return Optional.ofNullable(iterator.next());
     }
 
     /**
@@ -175,5 +171,137 @@ public interface Query<T> extends Iterable<T> {
     default T firstOrDefault(T defaultValue) {
         Iterator<T> it = iterator();
         return it.hasNext() ? it.next() : defaultValue;
+    }
+
+
+
+
+    /**
+     * Sorts the elements of this query in ascending order according to a comparable key.
+     *
+     * <p>Execution is deferred until the returned query is iterated, at which point elements are
+     * materialized and sorted stably.</p>
+     *
+     * @param keySelector extracts the sort key from each element
+     * @param <K>         the comparable key type
+     * @return a new {@code Query} whose elements are sorted in ascending key order
+     * @throws NullPointerException if {@code keySelector} is {@code null}
+     */
+    default <K extends Comparable<? super K>> Query<T> orderBy(
+            Function<? super T, ? extends K> keySelector) {
+        Objects.requireNonNull(keySelector, "keySelector");
+        Comparator<T> comparator = Comparator.comparing(keySelector);
+        return () -> new SortedIterable<>(this, comparator).iterator();
+    }
+
+    /**
+     * Sorts the elements of this query in ascending order using the given {@link Comparator}.
+     *
+     * <p>Execution is deferred until the returned query is iterated.</p>
+     *
+     * @param comparator the comparator used to order elements
+     * @return a new {@code Query} whose elements are sorted according to {@code comparator}
+     * @throws NullPointerException if {@code comparator} is {@code null}
+     */
+    default Query<T> orderBy(Comparator<? super T> comparator) {
+        Objects.requireNonNull(comparator, "comparator");
+        return () -> new SortedIterable<>(this, comparator).iterator();
+    }
+
+    /**
+     * Sorts the elements of this query in descending order according to a comparable key.
+     *
+     * <p>Execution is deferred until the returned query is iterated, at which point elements are
+     * materialized and sorted stably in reverse key order.</p>
+     *
+     * @param keySelector extracts the sort key from each element
+     * @param <K>         the comparable key type
+     * @return a new {@code Query} whose elements are sorted in descending key order
+     * @throws NullPointerException if {@code keySelector} is {@code null}
+     */
+    default <K extends Comparable<? super K>> Query<T> orderByDescending(
+            Function<? super T, ? extends K> keySelector) {
+        Objects.requireNonNull(keySelector, "keySelector");
+        Comparator<T> comparator = Comparator.<T, K>comparing(keySelector).reversed();
+        return () -> new SortedIterable<>(this, comparator).iterator();
+    }
+
+    /**
+     * Sorts the elements of this query in descending order using the given {@link Comparator}.
+     *
+     * <p>Execution is deferred until the returned query is iterated.</p>
+     *
+     * @param comparator the comparator defining ascending order before reversal
+     * @return a new {@code Query} whose elements are sorted in reverse comparator order
+     * @throws NullPointerException if {@code comparator} is {@code null}
+     */
+    default Query<T> orderByDescending(Comparator<? super T> comparator) {
+        Objects.requireNonNull(comparator, "comparator");
+        return () -> new SortedIterable<>(this, comparator.reversed()).iterator();
+    }
+
+
+
+    /**
+     * Returns the last element of this query.
+     *
+     * @return the last element in this sequence
+     * @throws NoSuchElementException if this query contains no elements
+     */
+    default T last() {
+        Iterator<T> iterator = iterator();
+
+        if (!iterator.hasNext()) throw new NoSuchElementException("The sequence is empty");
+
+        T lastValue = iterator.next();
+        while (iterator.hasNext()) {
+            lastValue = iterator.next();
+        }
+        return lastValue;
+    }
+
+    /**
+     * Returns the last element of this query that satisfies {@code predicate}.
+     *
+     * @param predicate the condition each candidate element must satisfy
+     * @return the last element matching {@code predicate}
+     * @throws NullPointerException   if {@code predicate} is {@code null}
+     * @throws NoSuchElementException if no element matches {@code predicate}
+     */
+    default T last(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate");
+        return where(predicate).last();
+    }
+
+    /**
+     * Returns the last element of this query wrapped in an {@link Optional}, or
+     * {@link Optional#empty()} if the query contains no elements.
+     *
+     * <p>Uses {@link Optional#ofNullable(Object)} so a {@code null} last element produces an
+     * empty {@code Optional} rather than throwing {@link NullPointerException}.</p>
+     *
+     * @return an {@link Optional} describing the last element, or {@link Optional#empty()} if empty
+     */
+    default Optional<T> lastOrDefault() {
+        try {
+            return Optional.ofNullable(last());
+        } catch (NoSuchElementException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Returns the last element of this query if present, or {@code defaultValue} if the query
+     * contains no elements.
+     *
+     * @param defaultValue the value to return when this query is empty; may be {@code null}
+     * @return the last element if present, otherwise {@code defaultValue}
+     */
+    default T lastOrDefault(T defaultValue) {
+        try {
+            return last();
+        } catch (NoSuchElementException e) {
+            return defaultValue;
+        }
     }
 }

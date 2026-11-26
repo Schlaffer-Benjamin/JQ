@@ -46,4 +46,49 @@ class QueryTest {
         assertEquals("fallback", JQ.<String>of().firstOrDefault("fallback"));
         assertNull(JQ.<String>of().firstOrDefault(null));
     }
+
+
+    @Test
+    void testBasics() {
+        List<Integer> result = JQ.of(1,2,3,4,5,6,7,8,9,10)
+                .where(x -> x > 5)
+                .take(4)
+                .orderByDescending(x -> x)
+                .toList();
+
+        System.out.println(result);
+    }
+
+
+    @Test
+    void orderByAndOrderByDescendingSortLazilyAndStably() {
+        List<String> items = List.of("b-1", "a-1", "b-2", "a-2");
+
+        List<String> ascending = JQ.from(items)
+                .orderBy(s -> s.substring(0, 1))
+                .toList();
+        assertEquals(List.of("a-1", "a-2", "b-1", "b-2"), ascending);
+
+        List<String> descending = JQ.from(items)
+                .orderByDescending(s -> s.substring(0, 1))
+                .toList();
+        assertEquals(List.of("b-1", "b-2", "a-1", "a-2"), descending);
+
+        System.out.println(ascending);
+        System.out.println(descending);
+    }
+
+
+    @Test
+    void testOnListAlreadyExisting() {
+        List<String> words = List.of("banana", "Apple", "Cherry");
+
+        System.out.println(words);
+
+        words = JQ.from(words)
+                .orderBy(x -> x)
+                .toList();
+
+        System.out.println(words);
+    }
 }
