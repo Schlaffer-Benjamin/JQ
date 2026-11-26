@@ -427,4 +427,40 @@ public interface Query<T> extends Iterable<T> {
 
         return true;
     }
+
+
+    /**
+     * Counts the elements inside a sequence
+     * @return The size of the given sequence
+     */
+    default int count() {
+        int count = 0;
+        for (T ignored : this) {
+            count++;
+        }
+        return count;
+    }
+
+    /**
+     *
+     * @return Gives back the sequence without any duplicates
+     */
+    default Query<T> distinct() {
+        return () -> new AbstractIterator<>() {
+            private final Iterator<T> source = iterator();
+            private final Set<T> seen = new HashSet<>();
+
+            @Override
+            protected T computeNext() {
+                while (source.hasNext()) {
+                    T item = source.next();
+                    if (seen.add(item)) {
+                        return item;
+                    }
+                }
+                return endOfData();
+            }
+        };
+    }
+
 }
