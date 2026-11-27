@@ -512,4 +512,68 @@ public interface Query<T> extends Iterable<T> {
         return result;
     }
 
+
+    
+    default boolean none(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate");
+        for (T item : this) {
+            if (predicate.test(item)) return false;
+        }
+
+        return true;
+    }
+
+    default boolean none() {
+        return !iterator().hasNext();
+    }
+
+
+    default T single() {
+        Iterator<T> iterator = iterator();
+        if (!iterator.hasNext()) throw new NoSuchElementException("Sequence contains no elements");
+
+        T singleItem = iterator.next();
+        if (iterator.hasNext()) throw new IllegalStateException("Sequence contains more than one element");
+
+        return singleItem;
+    }
+
+
+    default T single(Predicate<? super T> predicate) {
+        Objects.requireNonNull(predicate, "predicate");
+        boolean found = false;
+        T match = null;
+        for (T item : this) {
+            if (predicate.test(item)) {
+                if (found) {
+                    throw new IllegalStateException("Sequence contains more than one matching element");
+                }
+                match = item;
+                found = true;
+            }
+        }
+        if (!found) {
+            throw new NoSuchElementException("Sequence contains no matching element");
+        }
+        return match;
+    }
+
+
+    default Query<T> concat(Iterable<? extends T> second) {
+        Objects.requireNonNull(second, "second");
+
+        return () -> new AbstractIterator<T>() {
+            private final Iterator<T> firstIterator = iterator();
+            private final Iterator<? extends T> secondIterator = second.iterator(); 
+
+            @Override
+            protected T computeNext() {
+                if (firstIterator.hasNext()) return firstIterator.next();
+                if (secondIterator.hasNext()) return secondIterator.next();
+
+                return endOfData();
+            }
+        };
+    }
 }
+

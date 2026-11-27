@@ -83,6 +83,10 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-gpg-plugin</artifactId>
         <version>3.2.7</version>
+        <configuration>
+          <executable>C:/Program Files/GnuPG/bin/gpg.exe</executable>
+          <keyname>ED0CCC4D23762AA1</keyname>
+        </configuration>
         <executions>
           <execution>
             <id>sign-artifacts</id>
